@@ -1,3 +1,4 @@
+from calendar import c
 from dataclasses import field
 from re import A, L
 import re
@@ -10,6 +11,8 @@ from django import forms
 from django.core.files import File
 from django.contrib.auth.decorators import login_required
 from django.forms import HiddenInput, ModelForm, Textarea
+
+import auctions
 from .models import  User, Category, Auctions, Bid, Lot, Watchlist, Watchlist_item
 
 
@@ -76,7 +79,9 @@ def index(request):
     })
 
 def lot_category(request, category_id):
-    lot_categories = Lot.objects.filter(category=category_id)
+    #lot_categories = Lot.objects.filter(category=category_id)
+    item_category = Category.objects.get(pk=category_id)
+    lot_categories = item_category.category_lot.all()
     category = Category.objects.all()
     return render(request, "auctions/lot_of_category.html", {
         "lot_categories": lot_categories,
@@ -151,8 +156,9 @@ def create_auction(request, user_id):
             instance = form.save(commit=False)
             instance.owner_name = user
             instance.save()
+            form.save_m2m()
             return render(request, "auctions/lot.html", {
-                'lot': instance,          
+                'lot': instance,     
             })
     else:
         form = AuctionForm()
@@ -162,23 +168,26 @@ def edit_auction(request, lot_id):
     instance = Lot.objects.get(pk=lot_id)
     data= {'title': instance.title,
            'photo': instance.photo,
-           'category': instance.category,
-           #'owner_name': instance.owner_name,
+           'categories': instance.categories.all(),
            'description': instance.description,
            'starting_price': instance.starting_price
           }
     if request.method == 'POST':
         user = User.objects.get(pk=instance.owner_name.id)
         form = AuctionForm(request.POST, request.FILES)
+        category = int(request.POST.get('categories'))
         if form.is_valid:
             changed_instance = form.save(commit=False)
             changed_instance.owner_name = user
             changed_instance.id = lot_id
+            #changed_instance.categories = changed_instance.categories.set(category)
             if not changed_instance.photo:
                 changed_instance.photo = instance.photo
             changed_instance.save()
+            form.save_m2m()
             return render(request, 'auctions/lot.html', {
-                'lot': changed_instance
+                'lot': changed_instance,
+                'category': category
             })
 
     return render(request, 'auctions/edit_lot.html', {

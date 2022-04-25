@@ -26,7 +26,7 @@ class Category(models.Model):
 class Lot(models.Model):
     title = models.CharField(max_length=180)
     photo = models.ImageField(upload_to='images', blank=True, null=True)
-    category = models.ForeignKey(Category, on_delete=models.PROTECT)
+    categories = models.ManyToManyField(Category, blank=True, related_name='category_lot')
     owner_name = models.ForeignKey(User, on_delete=models.CASCADE)
     description = models.CharField(max_length=200, blank=True)
     starting_price = models.DecimalField(max_digits=10, decimal_places=2)
